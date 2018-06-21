@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web SQL</title>
+    <script src="xlsx.full.min.js"></script>
+    <script src="ssf.js"></script>
+    <script src="echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+            crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
+            integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+</head>
+<body>
+
+<input type="file" id="files" name="files[]" multiple/>
+
+<nav>
+    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+        <a class="nav-item nav-link active" id="nav-total-tab" data-toggle="tab" href="#nav-total" role="tab"
+           aria-controls="nav-total" aria-selected="true">Total</a>
+
+        <a class="nav-item nav-link" id="nav-cost-tab" data-toggle="tab" href="#nav-cost" role="tab"
+           aria-controls="nav-cost" aria-selected="false">cost</a>
+
+        <a class="nav-item nav-link" id="nav-income-tab" data-toggle="tab" href="#nav-income" role="tab"
+           aria-controls="nav-income" aria-selected="false">income</a>
+    </div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+    <div class="tab-pane fade show active" id="nav-total" role="tabpanel" aria-labelledby="nav-total-tab">
+        <div class="slidecontainer">
+            <b>$10</b>
+            <input type="range" min="10" max="1000" value="50" step="10" class="slider" id="myRange">
+            <b>$1000</b>
+            <div id="scaleMoney"></div>
+        </div>
+
+        <div id="output"></div>
+        <div class="row">
+            <div id="monthBar" style="width: 50%;height:500px;"></div>
+            <div id="costPie" style="width: 50%;height:600px;"></div>
+        </div>
+
+        <div>
+            <table id="detailTable" class="table">
+            </table>
+        </div>
+
+    </div>
+    <div class="tab-pane fade" id="nav-cost" role="tabpanel" aria-labelledby="nav-cost-tab">...</div>
+    <div class="tab-pane fade" id="nav-income" role="tabpanel" aria-labelledby="nav-income-tab">...</div>
+</div>
+
+<script>
+
+	const db = openDatabase('mydb', '1.0', 'my first database', 2 * 1024 * 1024);
+
+	const moneySlider = document.querySelector('#myRange')
+	const scaleMoney = document.querySelector('#scaleMoney')
+
+	const dbErrorHandler = (tx, err) => {
+		console.log(err)
+	}
+
+	function _dateFomater(date) {
+		const result = SSF.format('yyyy-mm-dd', date)
+		return result
+	}
+
+	function getTotalAmountByMonth() {
+		db.transaction(function (tx) {
+			tx.executeSql('SELECT sum(amount) AS amount, strftime("%Y-%m","transaction_date") AS month FROM bill GROUP BY strftime("%Y-%m","transaction_date")', [], function (tx, results) {
+				var len = results.rows.length, i;
+				for (i = 0; i < len; i++) {
+					console.log(results.rows.item(i));
+				}
+			});
+		})
+	}
+
+	function getCostAmountByMonth(minimun) {
+		db.transaction(function (tx) {
+
+				let sel = 'SELECT sum(amount) AS cost, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY strftime("%Y-%m","transaction_date")'
+
+				if (minimun) {
+					sel = sel + ' having cost <= ' + (-minimun)
+				}
+				console.log(sel)
+				tx.executeSql(sel, [], function (tx, results) {
+					var len = results.rows.length, i;
+					for (i = 0; i < len; i++) {
+						console.log(results.rows.item(i));
+					}
+				});
+			}, dbErrorHandler
+		)
+	}
+
+	function getIncomeAmountByMonth() {
+		db.transaction(function (tx) {
+			tx.executeSql('SELECT sum(amount) AS income, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) > 0 GROUP BY strftime("%Y-%m","transaction_date")', [], function (tx, results) {
+				var len = results.rows.length, i;
+				for (i = 0; i < len; i++) {
+					console.log(results.rows.item(i));
+				}
+			});
+		})
+	}
+
+	function getCostAmountByCode(minimun) {
+		db.transaction(function (tx) {
+			let sel = 'SELECT sum(amount) AS cost, details, code FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY code'
+			if (minimun) {
+				sel += ' having cost <= ' + (-minimun)
+			}
+			tx.executeSql(sel, [], function (tx, results) {
+				var len = results.rows.length, i;
+				for (i = 0; i < len; i++) {
+					console.log(results.rows.item(i));
+				}
+			});
+		}, dbErrorHandler)
+	}
+
+
+	moneySlider.oninput = () => {
+		scaleMoney.innerHTML = moneySlider.value
+		let minimun = moneySlider.value
+		getCostAmountByMonth(minimun)
+		getCostAmountByCode(minimun)
+	}
+
+	function insertData(data) {
+		const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
+
+		console.log(sheetCols)
+		db.transaction(function (tx) {
+
+			tx.executeSql('DROP TABLE bill');
+			tx.executeSql(`CREATE TABLE IF NOT EXISTS bill (
+        ${sheetCols}
+      )`);
+			data.forEach((item) => {
+				const values = Object.values(item).map((v, index) => {
+					if (v) {
+						//first two are 'transaction date' & 'processed date'
+						return index <= 1 ? `"${_dateFomater(v)}"` : `"${v}"`
+					} else {
+						return 'null'
+					}
+				}).join(',')
+
+				const insertSQL = `INSERT INTO bill (${sheetCols}) VALUES (${values})`
+				tx.executeSql(insertSQL);
+			})
+
+		})
+	}
+
+	function handleFileSelect(evt) {
+		const files = evt.target.files
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i]
+			const fileReader = new FileReader()
+			fileReader.readAsArrayBuffer(file)
+			fileReader.onload = e => {
+				const data = new Uint8Array(fileReader.result);
+				const arr = new Array();
+				for (let k = 0; k != data.length; ++k) arr[k] = String.fromCharCode(data[k]);
+				const bstr = arr.join("");
+
+				const workbook = XLSX.read(bstr, {type: "binary"});
+
+				const first_sheet_name = workbook.SheetNames[0];
+				const worksheet = workbook.Sheets[first_sheet_name];
+				const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: true})
+
+				insertData(jsonData)
+			}
+
+		}
+		getTotalAmountByMonth()
+		getCostAmountByMonth()
+		getIncomeAmountByMonth()
+		getCostAmountByCode()
+
+	}
+
+	document.querySelector('#files').addEventListener('change', handleFileSelect)
+
+
+</script>
+</body>
+</html>

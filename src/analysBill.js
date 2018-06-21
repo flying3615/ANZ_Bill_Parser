@@ -12,6 +12,10 @@ function totalSummaryFn(data) {
 	return totalSummary
 }
 
+function totalAmountByMonth(data){
+	console.log(groupDataDetail(data,'Transaction Date','month'))
+}
+
 function profitDeficitGroup(data, field, minumAmount, unit) {
 
 	const groupedData = groupDataDetail(data, field, unit)
