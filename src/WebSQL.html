@@ -5,6 +5,8 @@
     <title>Web SQL</title>
     <script src="xlsx.full.min.js"></script>
     <script src="ssf.js"></script>
+    <script src="util.js"></script>
+    <script src="analysisBillAsyn.js"></script>
     <script src="echarts.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
             integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
@@ -75,65 +77,6 @@
 		const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
 
 
-		const dbErrorHandler = (tx, err) => {
-			console.log(err)
-		}
-
-		function _dateFomater(date) {
-			const result = SSF.format('yyyy-mm-dd', date)
-			return result
-		}
-
-		function _getResultPromise(sql, params = []) {
-			console.log('sql =', sql)
-			return new Promise((resolve, reject) => {
-				db.transaction(tx => {
-					tx.executeSql(sql, params, (tx, res) => resolve(Array.from(res.rows)), reject)
-				})
-			})
-		}
-
-		async function getSumAmountByMonth(minimun) {
-			let sel = 'SELECT sum(amount) AS sumAmount, avg(balance) AS balance, strftime("%Y-%m","transaction_date") AS month FROM bill GROUP BY strftime("%Y-%m","transaction_date")'
-			if (minimun) {
-				sel = sel + ' having sumAmount >= ' + minimun
-			}
-			const result = await _getResultPromise(sel)
-			return result
-
-		}
-
-		async function getCostAmountByMonth(minimun) {
-
-			let sel = 'SELECT sum(amount) AS cost, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY strftime("%Y-%m","transaction_date")'
-
-			if (minimun) {
-				sel = sel + ' having cost <= ' + (-minimun)
-			}
-			const result = await _getResultPromise(sel)
-			return result
-
-		}
-
-		async function getIncomeAmountByMonth(minimun) {
-			let sel = 'SELECT sum(amount) AS income, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) > 0 GROUP BY strftime("%Y-%m","transaction_date")'
-			if (minimun) {
-				sel += ' having income >= ' + minimun
-			}
-			const result = await _getResultPromise(sel)
-			return result
-		}
-
-		async function getCostAmountByCode(minimun = 0) {
-			let sel = 'SELECT sum(amount) AS cost, details, code FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY code'
-			if (minimun) {
-				sel += ' having cost <= ' + (-minimun)
-			}
-			const result = await _getResultPromise(sel)
-			return result
-		}
-
-
 		moneySlider.oninput = () => {
 			scaleMoney.innerHTML = moneySlider.value
 			let minimun = moneySlider.value
@@ -192,7 +135,10 @@
 						data: xAxisMonths
 					},
 					yAxis: {
-						type: 'value'
+						type: 'value',
+						axisLabel: {
+							formatter: '$ {value}'
+						}
 					},
 					series: [
 						{
@@ -295,24 +241,11 @@
 				const fileReader = new FileReader()
 				fileReader.readAsArrayBuffer(file)
 				fileReader.onload = e => {
-					const data = new Uint8Array(fileReader.result);
-					const arr = new Array();
-					for (let k = 0; k != data.length; ++k) arr[k] = String.fromCharCode(data[k]);
-					const bstr = arr.join("");
-
-					const workbook = XLSX.read(bstr, {type: "binary"});
-
-					const first_sheet_name = workbook.SheetNames[0];
-					const worksheet = workbook.Sheets[first_sheet_name];
-					const jsonData = XLSX.utils.sheet_to_json(worksheet, {raw: true})
-
+					const jsonData = readExcelData(fileReader)
 					insertData(jsonData)
 				}
-
 			}
-
 			renderTotalChart()
-
 		}
 
 		document.querySelector('#files').addEventListener('change', handleFileSelect)
