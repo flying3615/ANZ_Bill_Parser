@@ -44,6 +44,9 @@
                 <b>$1000</b>
                 <div id="scaleMoney"></div>
             </div>
+            <div>
+                <button class="btn" id="resetBtn">Reset</button>
+            </div>
 
             <div class="row">
                 <div id="totalSumm" style="width: 100%;height:400px;"></div>
@@ -66,7 +69,6 @@
 
 	(function () {
 
-
 		const moneySlider = document.querySelector('#myRange')
 		const scaleMoney = document.querySelector('#scaleMoney')
 
@@ -83,6 +85,7 @@
 		}
 
 		function _getResultPromise(sql, params = []) {
+			console.log('sql =', sql)
 			return new Promise((resolve, reject) => {
 				db.transaction(tx => {
 					tx.executeSql(sql, params, (tx, res) => resolve(Array.from(res.rows)), reject)
@@ -90,122 +93,177 @@
 			})
 		}
 
-		function getSumAmountByMonth() {
-			db.transaction(function (tx) {
-				tx.executeSql('SELECT sum(amount) AS amount, avg(balance) AS balance, strftime("%Y-%m","transaction_date") AS month FROM bill GROUP BY strftime("%Y-%m","transaction_date")', [], function (tx, results) {
-					var len = results.rows.length, i;
-					for (i = 0; i < len; i++) {
-						console.log(results.rows.item(i));
-					}
+		async function getSumAmountByMonth(minimun) {
+			let sel = 'SELECT sum(amount) AS sumAmount, avg(balance) AS balance, strftime("%Y-%m","transaction_date") AS month FROM bill GROUP BY strftime("%Y-%m","transaction_date")'
+			if (minimun) {
+				sel = sel + ' having sumAmount >= ' + minimun
+			}
+			const result = await _getResultPromise(sel)
+			return result
 
-					const xAxisMonths = Array.from(results.rows).map(r => r.month)
-					const amountData = Array.from(results.rows).map(v => Number(v.amount.toFixed(2)))
-					const balanceData = Array.from(results.rows).map(v => Number(v.balance.toFixed(2)))
-
-					const option = {
-						title: {
-							text: 'Bill'
-						},
-						tooltip: {
-							trigger: 'axis'
-						},
-						legend: {
-							data: ['profit', 'balance']
-						},
-						grid: {
-							left: '3%',
-							right: '4%',
-							bottom: '3%',
-							containLabel: true
-						},
-						toolbox: {
-							feature: {
-								saveAsImage: {}
-							}
-						},
-						xAxis: {
-							type: 'category',
-							boundaryGap: false,
-							data: xAxisMonths
-						},
-						yAxis: {
-							type: 'value'
-						},
-						series: [
-							{name: 'profit', type: 'line', stack: 'total', data: amountData},
-							{name: 'balance', type: 'line', stack: 'total', data: balanceData}
-						]
-					};
-					console.log(option, null, 2)
-					totalSummChart.setOption(option)
-
-				});
-			})
 		}
 
-		function getCostAmountByMonth(minimun = 0) {
-			db.transaction(function (tx) {
+		async function getCostAmountByMonth(minimun) {
 
-					let sel = 'SELECT sum(amount) AS cost, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY strftime("%Y-%m","transaction_date")'
+			let sel = 'SELECT sum(amount) AS cost, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY strftime("%Y-%m","transaction_date")'
 
-					if (minimun) {
-						sel = sel + ' having cost <= ' + (-minimun)
-					}
-					console.log(sel)
-					tx.executeSql(sel, [], function (tx, results) {
-						var len = results.rows.length, i;
-						for (i = 0; i < len; i++) {
-							console.log(results.rows.item(i));
-						}
-					});
-				}, dbErrorHandler
-			)
+			if (minimun) {
+				sel = sel + ' having cost <= ' + (-minimun)
+			}
+			const result = await _getResultPromise(sel)
+			return result
+
 		}
 
-		function getIncomeAmountByMonth() {
-			db.transaction(function (tx) {
-				tx.executeSql('SELECT sum(amount) AS income, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) > 0 GROUP BY strftime("%Y-%m","transaction_date")', [], function (tx, results) {
-					var len = results.rows.length, i;
-					for (i = 0; i < len; i++) {
-						console.log(results.rows.item(i));
-					}
-				});
-			})
+		async function getIncomeAmountByMonth(minimun) {
+			let sel = 'SELECT sum(amount) AS income, strftime("%Y-%m","transaction_date") AS month FROM bill WHERE cast(amount AS DECIMAL) > 0 GROUP BY strftime("%Y-%m","transaction_date")'
+			if (minimun) {
+				sel += ' having income >= ' + minimun
+			}
+			const result = await _getResultPromise(sel)
+			return result
 		}
 
-		function getCostAmountByCode(minimun = 0) {
-			db.transaction(function (tx) {
-				let sel = 'SELECT sum(amount) AS cost, details, code FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY code'
-				if (minimun) {
-					sel += ' having cost <= ' + (-minimun)
-				}
-				tx.executeSql(sel, [], function (tx, results) {
-					var len = results.rows.length, i;
-					for (i = 0; i < len; i++) {
-						console.log(results.rows.item(i));
-					}
-				});
-			}, dbErrorHandler)
+		async function getCostAmountByCode(minimun = 0) {
+			let sel = 'SELECT sum(amount) AS cost, details, code FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY code'
+			if (minimun) {
+				sel += ' having cost <= ' + (-minimun)
+			}
+			const result = await _getResultPromise(sel)
+			return result
 		}
 
 
 		moneySlider.oninput = () => {
 			scaleMoney.innerHTML = moneySlider.value
 			let minimun = moneySlider.value
-			const sql = 'SELECT * FROM bill'
 
-			_getResultPromise(sql)
-				.then((res) => console.log('promise---', res))
-				.catch(handleFileSelect)
+			renderTotalChart(minimun)
+		}
 
-			getCostAmountByMonth(minimun)
-			getCostAmountByCode(minimun)
+		function resetTotal() {
+			renderTotalChart()
+		}
+
+		function renderTotalChart(minimun) {
+
+			Promise.all([
+				getSumAmountByMonth(minimun),
+				getCostAmountByMonth(minimun),
+				getIncomeAmountByMonth(minimun)
+			]).then(values => {
+				console.log('values', values)
+				const total = values[0]
+				const cost = values[1]
+				const income = values[2]
+				//suppose every month spent money
+				const xAxisMonths = cost.map(r => r.month)
+
+				const amountData = total.map(v => Number(v.sumAmount.toFixed(0)))
+				const balanceData = total.map(v => Number(v.balance.toFixed(0)))
+				const costData = cost.map(v => Number((-v.cost).toFixed(0)))
+				const incomeData = income.map(v => Number(v.income.toFixed(0)))
+
+				const option = {
+					title: {
+						text: 'Bill'
+					},
+					tooltip: {
+						trigger: 'axis'
+					},
+					legend: {
+						data: ['profit', 'balance', 'cost', 'income']
+					},
+					toolbox: {
+						show: true,
+						feature: {
+							dataZoom: {
+								yAxisIndex: 'none'
+							},
+							dataView: {readOnly: false},
+							magicType: {type: ['line', 'bar']},
+							restore: {},
+							saveAsImage: {}
+						}
+					},
+					xAxis: {
+						type: 'category',
+						boundaryGap: false,
+						data: xAxisMonths
+					},
+					yAxis: {
+						type: 'value'
+					},
+					series: [
+						{
+							name: 'profit', type: 'line', data: amountData,
+							markPoint: {
+								data: [
+									{type: 'max', name: '最大值'},
+									{type: 'min', name: '最小值'}
+								]
+							},
+							markLine: {
+								data: [
+									{type: 'average', name: '平均值'}
+								]
+							}
+						},
+						{
+							name: 'balance', type: 'line', data: balanceData,
+							markPoint: {
+								data: [
+									{type: 'max', name: '最大值'},
+									{type: 'min', name: '最小值'}
+								]
+							},
+							markLine: {
+								data: [
+									{type: 'average', name: '平均值'}
+								]
+							}
+						},
+						{
+							name: 'cost', type: 'line', data: costData,
+							markPoint: {
+								data: [
+									{type: 'max', name: '最大值'},
+									{type: 'min', name: '最小值'}
+								]
+							},
+							markLine: {
+								data: [
+									{type: 'average', name: '平均值'}
+								]
+							}
+						},
+						{
+							name: 'income', type: 'line', data: incomeData,
+							markPoint: {
+								data: [
+									{type: 'max', name: '最大值'},
+									{type: 'min', name: '最小值'}
+								]
+							},
+							markLine: {
+								data: [
+									{type: 'average', name: '平均值'}
+								]
+							}
+						}
+					]
+				};
+				console.log(option, null, 2)
+				totalSummChart.setOption(option)
+			})
+
+
 		}
 
 		function insertData(data) {
 			const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
-
-			console.log(sheetCols)
+//          print columons headers
+//			console.log(sheetCols)
 			db.transaction(function (tx) {
 
 				tx.executeSql('DROP TABLE bill');
@@ -228,6 +286,7 @@
 
 			})
 		}
+
 
 		function handleFileSelect(evt) {
 			const files = evt.target.files
@@ -252,16 +311,12 @@
 
 			}
 
-
-			// change to async
-			getSumAmountByMonth()
-			getCostAmountByMonth()
-			getIncomeAmountByMonth()
-			getCostAmountByCode()
+			renderTotalChart()
 
 		}
 
 		document.querySelector('#files').addEventListener('change', handleFileSelect)
+		document.querySelector('#resetBtn').addEventListener('click', resetTotal)
 
 	})()
 </script>
