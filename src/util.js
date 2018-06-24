@@ -28,10 +28,13 @@ function readExcelData(fileReader) {
 
 
 function _getResultPromise(sql, params = []) {
-	console.log('sql =', sql)
 	return new Promise((resolve, reject) => {
 		db.transaction(tx => {
-			tx.executeSql(sql, params, (tx, res) => resolve(Array.from(res.rows)), reject)
+			tx.executeSql(sql, params, (tx, res) => {
+				console.log('sql = ', sql)
+				console.log('db return rows ', res.rows)
+				return resolve(Array.from(res.rows)), reject
+			})
 		})
 	})
 }

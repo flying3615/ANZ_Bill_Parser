@@ -1,68 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Web SQL</title>
-    <script src="xlsx.full.min.js"></script>
-    <script src="ssf.js"></script>
-    <script src="util.js"></script>
-    <script src="analysisBillAsyn.js"></script>
-    <script src="echarts.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
-            integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
-            crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
-            integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
-            crossorigin="anonymous"></script>
-    <link rel="stylesheet" type="text/css"
-          href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
+	<meta charset="UTF-8">
+	<title>Web SQL</title>
+	<script src="xlsx.full.min.js"></script>
+	<script src="ssf.js"></script>
+	<script src="util.js"></script>
+	<script src="analysisBillAsyn.js"></script>
+	<script src="echarts.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+					integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+					crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+					integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+					crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"
+					integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+					crossorigin="anonymous"></script>
+	<link rel="stylesheet" type="text/css"
+				href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css">
 </head>
 <body>
 <div class="container">
-    <input class="form-control" type="file" id="files" name="files[]" multiple/>
+	<input class="form-control" type="file" id="files" name="files[]" multiple/>
 
-    <hr/>
-    <nav>
-        <div class="nav nav-tabs" id="nav-tab" role="tablist">
-            <a class="nav-item nav-link active" id="nav-total-tab" data-toggle="tab" href="#nav-total" role="tab"
-               aria-controls="nav-total" aria-selected="true">Total</a>
+	<hr/>
+	<nav>
+		<div class="nav nav-tabs" id="nav-tab" role="tablist">
+			<a class="nav-item nav-link active" id="nav-total-tab" data-toggle="tab" href="#nav-total" role="tab"
+				 aria-controls="nav-total" aria-selected="true">Total</a>
 
-            <a class="nav-item nav-link" id="nav-cost-tab" data-toggle="tab" href="#nav-cost" role="tab"
-               aria-controls="nav-cost" aria-selected="false">cost</a>
+			<a class="nav-item nav-link" id="nav-cost-tab" data-toggle="tab" href="#nav-cost" role="tab"
+				 aria-controls="nav-cost" aria-selected="false">cost</a>
 
-            <a class="nav-item nav-link" id="nav-income-tab" data-toggle="tab" href="#nav-income" role="tab"
-               aria-controls="nav-income" aria-selected="false">income</a>
-        </div>
-    </nav>
+			<a class="nav-item nav-link" id="nav-income-tab" data-toggle="tab" href="#nav-income" role="tab"
+				 aria-controls="nav-income" aria-selected="false">income</a>
+		</div>
+	</nav>
 
-    <div class="tab-content" id="nav-tabContent">
-        <div class="tab-pane fade show active" id="nav-total" role="tabpanel" aria-labelledby="nav-total-tab">
-            <div class="slidecontainer">
-                <b>$10</b>
-                <input type="range" min="10" max="1000" value="50" step="10" class="slider" id="myRange">
-                <b>$1000</b>
-                <div id="scaleMoney"></div>
-            </div>
-            <div>
-                <button class="btn" id="resetBtn">Reset</button>
-            </div>
+	<div class="tab-content" id="nav-tabContent">
+		<div class="tab-pane fade show active" id="nav-total" role="tabpanel" aria-labelledby="nav-total-tab">
+			<div class="slidecontainer">
+				<b>$10</b>
+				<input type="range" min="10" max="1000" value="50" step="10" class="slider" id="myRange">
+				<b>$1000</b>
+				<div id="scaleMoney"></div>
+			</div>
+			<div>
+				<button class="btn" id="resetBtn">Reset</button>
+			</div>
 
-            <div class="row">
-                <div id="totalSumm" style="width: 100%;height:400px;"></div>
-            </div>
+			<div id="totalSumm" style="width: 100%;height:400px;"></div>
 
-            <div>
-                <table id="detailTable" class="table">
-                </table>
-            </div>
+			<hr/>
+			<div id="pieDetail" style="width: 800px;height:500px;"></div>
 
-        </div>
-        <div class="tab-pane fade" id="nav-cost" role="tabpanel" aria-labelledby="nav-cost-tab">...</div>
-        <div class="tab-pane fade" id="nav-income" role="tabpanel" aria-labelledby="nav-income-tab">...</div>
-    </div>
+			<div>
+				<table id="detailTable" class="table">
+				</table>
+			</div>
+
+		</div>
+		<div class="tab-pane fade" id="nav-cost" role="tabpanel" aria-labelledby="nav-cost-tab">...</div>
+		<div class="tab-pane fade" id="nav-income" role="tabpanel" aria-labelledby="nav-income-tab">...</div>
+	</div>
 </div>
 <script>
 
@@ -73,16 +74,19 @@
 
 		const moneySlider = document.querySelector('#myRange')
 		const scaleMoney = document.querySelector('#scaleMoney')
+		const detailTable = document.querySelector('#detailTable')
+		const fileInputBtn = document.querySelector('#files')
+		const resetBtn = document.querySelector('#resetBtn')
 
 		const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
+		const detailsChart = echarts.init(document.querySelector('#pieDetail'))
 
-
-		moneySlider.oninput = () => {
+		moneySlider.addEventListener('input', () => {
 			scaleMoney.innerHTML = moneySlider.value
 			let minimun = moneySlider.value
 
 			renderTotalChart(minimun)
-		}
+		})
 
 		function resetTotal() {
 			renderTotalChart()
@@ -95,7 +99,6 @@
 				getCostAmountByMonth(minimun),
 				getIncomeAmountByMonth(minimun)
 			]).then(values => {
-				console.log('values', values)
 				const total = values[0]
 				const cost = values[1]
 				const income = values[2]
@@ -162,11 +165,6 @@
 									{type: 'max', name: '最大值'},
 									{type: 'min', name: '最小值'}
 								]
-							},
-							markLine: {
-								data: [
-									{type: 'average', name: '平均值'}
-								]
 							}
 						},
 						{
@@ -199,17 +197,15 @@
 						}
 					]
 				};
-				console.log(option, null, 2)
 				totalSummChart.setOption(option)
 			})
-
 
 		}
 
 		function insertData(data) {
+			//handle spaces and / chars
 			const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
 //          print columons headers
-//			console.log(sheetCols)
 			db.transaction(function (tx) {
 
 				tx.executeSql('DROP TABLE bill');
@@ -233,7 +229,6 @@
 			})
 		}
 
-
 		function handleFileSelect(evt) {
 			const files = evt.target.files
 			for (let i = 0; i < files.length; i++) {
@@ -248,8 +243,88 @@
 			renderTotalChart()
 		}
 
-		document.querySelector('#files').addEventListener('change', handleFileSelect)
-		document.querySelector('#resetBtn').addEventListener('click', resetTotal)
+		fileInputBtn.addEventListener('change', handleFileSelect)
+		resetBtn.addEventListener('click', resetTotal)
+
+		totalSummChart.on('click', params => {
+			detailTable.innerHTML = ''
+			const headerRow = detailTable.insertRow()
+			headerRow.insertCell(0).innerText = 'Date'
+			headerRow.insertCell(1).innerText = 'Amount'
+			headerRow.insertCell(2).innerText = 'Balance'
+			headerRow.insertCell(3).innerText = 'Details'
+			headerRow.insertCell(4).innerText = 'Code'
+			//get detail by month...
+
+			getDetailAmountByMonth(params.name, params.seriesName).then(resultSet => {
+				resultSet.forEach(record => {
+					const row = detailTable.insertRow()
+					row.insertCell(0).innerText = record['Transaction_Date']
+					row.insertCell(1).innerText = record['Amount']
+					row.insertCell(2).innerText = record['Balance']
+					row.insertCell(3).innerText = record['Details']
+					row.insertCell(4).innerText = record['Code']
+				})
+
+			})
+
+			getCostAmountByCodeOrDetails(params.name, params.seriesName).then(resultSet => {
+
+				const seriesData = resultSet.map(r => {
+					return {
+						value: Math.abs(r.cost),
+						//1742 C???
+						name: ((r.Code && !r.Code.includes('1742')) ? r.Code : r.Details || 'Unknown')
+					}
+				})
+
+				const legendData = resultSet.map(r => (r.Code && !r.Code.includes('1742')) ? r.Code : r.Details || 'Unknown')
+
+				const option = {
+					title: {
+						text: 'Cost Summary',
+						x: 'center'
+					},
+					tooltip: {
+						trigger: 'item',
+						formatter: "{a} <br/>{b} : {c} ({d}%)"
+					},
+					legend: {
+						orient: 'vertical',
+						left: 'left',
+						data: legendData
+					},
+					toolbox: {
+						show: true,
+						feature: {
+							mark: {show: true},
+							dataView: {show: true, readOnly: false},
+							magicType: {
+								show: true,
+								type: ['pie', 'funnel']
+							},
+							restore: {show: true},
+							saveAsImage: {show: true}
+						}
+					},
+					series: [
+						{
+							name: 'Amount',
+							type: 'pie',
+							radius: '55%',
+							center: ['50%', '60%'],
+							data: seriesData
+						}
+					]
+				};
+
+				detailsChart.setOption(option)
+
+			})
+
+
+		})
+
 
 	})()
 </script>

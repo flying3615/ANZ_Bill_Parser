@@ -34,11 +34,45 @@ async function getIncomeAmountByMonth(minimun) {
 	return result
 }
 
-async function getCostAmountByCode(minimun = 0) {
-	let sel = 'SELECT sum(amount) AS cost, details, code FROM bill WHERE cast(amount AS DECIMAL) < 0 GROUP BY code'
-	if (minimun) {
-		sel += ' having cost <= ' + (-minimun)
+async function getDetailAmountByMonth(month, type = 'total') {
+
+	let typeCondition
+	switch (type) {
+		case 'cost':
+			typeCondition = ' AND cast(amount AS DECIMAL) < 0';
+			break
+		case 'income':
+			typeCondition = ' AND cast(amount AS DECIMAL) > 0';
+			break
+		default:
+			typeCondition = '';
+			break
 	}
+
+	let sel = `SELECT * FROM bill WHERE strftime("%Y-%m","transaction_date") = "${month}" ${typeCondition} ORDER BY amount`
+
+	const result = await _getResultPromise(sel)
+	return result
+}
+
+async function getCostAmountByCodeOrDetails(month, type = 'total') {
+	const monthCondition = month ? ` WHERE strftime("%Y-%m","transaction_date") = "${month}"` : ""
+
+	let finalCondition
+	switch (type) {
+		case 'cost':
+			finalCondition = monthCondition+' AND cast(amount AS DECIMAL) < 0';
+			break
+		case 'income':
+			finalCondition = monthCondition+' AND cast(amount AS DECIMAL) > 0';
+			break
+		default:
+			finalCondition = monthCondition;
+			break
+	}
+
+	const sel = `SELECT sum(amount) AS cost, details, code FROM bill ${finalCondition} GROUP BY CASE WHEN (code is NULL or code like "1742%") THEN details ELSE code END`
+
 	const result = await _getResultPromise(sel)
 	return result
 }
