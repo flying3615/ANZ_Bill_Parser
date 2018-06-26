@@ -22,6 +22,12 @@
 </head>
 <body>
 <div class="container">
+
+	<input type="text" id="category" placeholder="cost category">
+	<button id="addCategoryBtn">Add</button>
+	<ul id="costCategory"></ul>
+
+
 	<input class="form-control" type="file" id="files" name="files[]" multiple/>
 
 	<hr/>
@@ -77,6 +83,22 @@
 		const detailTable = document.querySelector('#detailTable')
 		const fileInputBtn = document.querySelector('#files')
 		const resetBtn = document.querySelector('#resetBtn')
+
+		const addCategoryBtn = document.querySelector('#addCategoryBtn')
+
+		//category list
+		addCategoryBtn.addEventListener('click',()=>{
+			const category = document.querySelector('#category').value
+			document.querySelector('#costCategory').innerHTML+=`
+				<li onclick="(()=>{
+					document.querySelector('#costCategory').removeChild(this)
+				})()">
+					<span class="badge badge-pill badge-info">${category}</span>
+				</li>
+			`
+		})
+
+
 
 		const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
 		const detailsChart = echarts.init(document.querySelector('#pieDetail'))
@@ -202,32 +224,6 @@
 
 		}
 
-		function insertData(data) {
-			//handle spaces and / chars
-			const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
-//          print columons headers
-			db.transaction(function (tx) {
-
-				tx.executeSql('DROP TABLE bill');
-				tx.executeSql(`CREATE TABLE IF NOT EXISTS bill (
-          ${sheetCols}
-        )`);
-				data.forEach((item) => {
-					const values = Object.values(item).map((v, index) => {
-						if (v) {
-							//first two are 'transaction date' & 'processed date'
-							return index <= 1 ? `"${_dateFomater(v)}"` : `"${v}"`
-						} else {
-							return 'null'
-						}
-					}).join(',')
-
-					const insertSQL = `INSERT INTO bill (${sheetCols}) VALUES (${values})`
-					tx.executeSql(insertSQL);
-				})
-
-			})
-		}
 
 		function handleFileSelect(evt) {
 			const files = evt.target.files
@@ -237,10 +233,13 @@
 				fileReader.readAsArrayBuffer(file)
 				fileReader.onload = e => {
 					const jsonData = readExcelData(fileReader)
-					insertData(jsonData)
+					createBillTable(jsonData)
+						.then(() => sortCodeFromDetails())
+						.then(() => renderTotalChart())
+						.then(() => console.log(getUniqCodeorDetails('2018-05'))) //TODO test distinct code here
+						.catch(e => console.error(e))
 				}
 			}
-			renderTotalChart()
 		}
 
 		fileInputBtn.addEventListener('change', handleFileSelect)
@@ -322,8 +321,8 @@
 
 			})
 
-
 		})
+
 
 
 	})()

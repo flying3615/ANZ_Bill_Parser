@@ -9,7 +9,7 @@ function _dateFomater(date) {
 
 
 const dbErrorHandler = (tx, err) => {
-	console.log(err)
+	console.error(err)
 }
 
 function readExcelData(fileReader) {
@@ -34,6 +34,9 @@ function _getResultPromise(sql, params = []) {
 				console.log('sql = ', sql)
 				console.log('db return rows ', res.rows)
 				return resolve(Array.from(res.rows)), reject
+			},(tx,err)=>{
+				console.error('error sql ',sql)
+				dbErrorHandler(tx,err)
 			})
 		})
 	})

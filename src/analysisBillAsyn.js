@@ -61,10 +61,10 @@ async function getCostAmountByCodeOrDetails(month, type = 'total') {
 	let finalCondition
 	switch (type) {
 		case 'cost':
-			finalCondition = monthCondition+' AND cast(amount AS DECIMAL) < 0';
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) < 0';
 			break
 		case 'income':
-			finalCondition = monthCondition+' AND cast(amount AS DECIMAL) > 0';
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) > 0';
 			break
 		default:
 			finalCondition = monthCondition;
@@ -75,4 +75,40 @@ async function getCostAmountByCodeOrDetails(month, type = 'total') {
 
 	const result = await _getResultPromise(sel)
 	return result
+}
+
+async function sortCodeFromDetails() {
+	const updateSql = 'update bill set code = details where code is null or code like "1742%"'
+	await _getResultPromise(updateSql)
+}
+
+async function getUniqCodeorDetails(month) {
+	const monthCondition = month ? ` WHERE strftime("%Y-%m","transaction_date") = "${month}"` : ""
+	const sel = `SELECT distinct code FROM bill ${monthCondition}`
+	return await _getResultPromise(sel)
+}
+
+async function createBillTable(data) {
+	const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
+	const createTable = `CREATE TABLE IF NOT EXISTS bill (${sheetCols},category)`
+	const dropTable = 'DROP TABLE bill'
+	await _getResultPromise(dropTable)
+	await _getResultPromise(createTable)
+	console.log('async after')
+
+	await Promise.all(data.map(async (item) => {
+		const values = Object.values(item).map((v, index) => {
+			if (v) {
+				//first two columns are 'transaction date' & 'processed date'
+				return index <= 1 ? `"${_dateFomater(v)}"` : `"${v}"`
+			} else {
+				return 'null'
+			}
+		}).join(',')
+
+		const insertSQL = `INSERT INTO bill (${sheetCols}, category) VALUES (${values}, "null")`
+
+		return await _getResultPromise(insertSQL)
+	}))
+
 }
