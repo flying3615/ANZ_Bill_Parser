@@ -23,26 +23,9 @@
 <body>
 <div class="container">
 
-	<input type="text" id="category" placeholder="cost category">
-	<button id="addCategoryBtn">Add</button>
-	<ul id="costCategory"></ul>
-
-
 	<input class="form-control" type="file" id="files" name="files[]" multiple/>
 
 	<hr/>
-	<nav>
-		<div class="nav nav-tabs" id="nav-tab" role="tablist">
-			<a class="nav-item nav-link active" id="nav-total-tab" data-toggle="tab" href="#nav-total" role="tab"
-				 aria-controls="nav-total" aria-selected="true">Total</a>
-
-			<a class="nav-item nav-link" id="nav-cost-tab" data-toggle="tab" href="#nav-cost" role="tab"
-				 aria-controls="nav-cost" aria-selected="false">cost</a>
-
-			<a class="nav-item nav-link" id="nav-income-tab" data-toggle="tab" href="#nav-income" role="tab"
-				 aria-controls="nav-income" aria-selected="false">income</a>
-		</div>
-	</nav>
 
 	<div class="tab-content" id="nav-tabContent">
 		<div class="tab-pane fade show active" id="nav-total" role="tabpanel" aria-labelledby="nav-total-tab">
@@ -55,20 +38,41 @@
 			<div>
 				<button class="btn" id="resetBtn">Reset</button>
 			</div>
-
-			<div id="totalSumm" style="width: 100%;height:400px;"></div>
-
-			<hr/>
-			<div id="pieDetail" style="width: 800px;height:500px;"></div>
-
-			<div>
-				<table id="detailTable" class="table">
-				</table>
-			</div>
+			<section>
+				<div class="card" id="totalCard" style="display: none">
+					<h5 class="card-header">Total Summary</h5>
+					<div class="card-body">
+						<div id="totalSumm" style="width: 1000px;height:500px;"></div>
+					</div>
+				</div>
+			</section>
+			<br/>
+			<br/>
+			<section>
+				<div class="card" id="portionCard" style="display: none">
+					<h5 class="card-header" id="pieCardTitle">Portion Summary</h5>
+					<div class="card-body">
+						<!--show it when pie chart showing, onclick-->
+						<input type="text" id="category" placeholder="cost category">
+						<button id="addCategoryBtn">Add</button>
+						<ul id="costCategory"></ul>
+						<div id="pieDetail" style="width: 800px;height:500px;"></div>
+					</div>
+				</div>
+			</section>
+			<br/>
+			<br/>
+			<section>
+				<div class="card" id="costDetailsCard" style="display: none">
+					<h5 class="card-header" id="tableCardTitle">Cost Details</h5>
+					<div class="card-body">
+						<table id="detailTable" class="table">
+						</table>
+					</div>
+				</div>
+			</section>
 
 		</div>
-		<div class="tab-pane fade" id="nav-cost" role="tabpanel" aria-labelledby="nav-cost-tab">...</div>
-		<div class="tab-pane fade" id="nav-income" role="tabpanel" aria-labelledby="nav-income-tab">...</div>
 	</div>
 </div>
 <script>
@@ -84,13 +88,21 @@
 		const fileInputBtn = document.querySelector('#files')
 		const resetBtn = document.querySelector('#resetBtn')
 
+		const portionCard = document.querySelector('#portionCard')
+		const costDetailsCard = document.querySelector('#costDetailsCard')
+
 		const addCategoryBtn = document.querySelector('#addCategoryBtn')
 
+		const pieCardTitle = document.querySelector('#pieCardTitle')
+		const tableCardTitle = document.querySelector('#tableCardTitle')
+
 		//category list
-		addCategoryBtn.addEventListener('click',()=>{
+		addCategoryBtn.addEventListener('click', () => {
+			// TODO add to table column
 			const category = document.querySelector('#category').value
-			document.querySelector('#costCategory').innerHTML+=`
+			document.querySelector('#costCategory').innerHTML += `
 				<li onclick="(()=>{
+					// TODO remove table column
 					document.querySelector('#costCategory').removeChild(this)
 				})()">
 					<span class="badge badge-pill badge-info">${category}</span>
@@ -99,27 +111,27 @@
 		})
 
 
-
 		const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
 		const detailsChart = echarts.init(document.querySelector('#pieDetail'))
 
 		moneySlider.addEventListener('input', () => {
 			scaleMoney.innerHTML = moneySlider.value
-			let minimun = moneySlider.value
-
-			renderTotalChart(minimun)
+			const minimum = moneySlider.value
+			// limit the minimum cost
+			renderTotalChart(minimum)
+			//TODO constrain portion & table too??
 		})
 
 		function resetTotal() {
 			renderTotalChart()
 		}
 
-		function renderTotalChart(minimun) {
+		function renderTotalChart(minimum) {
 
 			Promise.all([
-				getSumAmountByMonth(minimun),
-				getCostAmountByMonth(minimun),
-				getIncomeAmountByMonth(minimun)
+				getSumAmountByMonth(minimum),
+				getCostAmountByMonth(minimum),
+				getIncomeAmountByMonth(minimum)
 			]).then(values => {
 				const total = values[0]
 				const cost = values[1]
@@ -220,6 +232,8 @@
 					]
 				};
 				totalSummChart.setOption(option)
+				//show chart
+				document.querySelector('#totalCard').style.display = 'block'
 			})
 
 		}
@@ -246,6 +260,12 @@
 		resetBtn.addEventListener('click', resetTotal)
 
 		totalSummChart.on('click', params => {
+
+			//show pie chart
+			portionCard.style.display = 'block'
+			//show cost details table
+			costDetailsCard.style.display = 'block'
+
 			detailTable.innerHTML = ''
 			const headerRow = detailTable.insertRow()
 			headerRow.insertCell(0).innerText = 'Date'
@@ -268,7 +288,15 @@
 			})
 
 			getCostAmountByCodeOrDetails(params.name, params.seriesName).then(resultSet => {
+				if (!['cost', 'income'].includes(params.seriesName)) {
+					// hide pie and table
+					portionCard.style.display = 'none'
+					costDetailsCard.style.display = 'none'
+					return
+				}
 
+				pieCardTitle.innerText = `${params.name} ${params.seriesName} portion`
+				tableCardTitle.innerText = `${params.name} ${params.seriesName} details`
 				const seriesData = resultSet.map(r => {
 					return {
 						value: Math.abs(r.cost),
@@ -281,7 +309,7 @@
 
 				const option = {
 					title: {
-						text: 'Cost Summary',
+						text: `${params.seriesName} Summary`,
 						x: 'center'
 					},
 					tooltip: {
@@ -322,7 +350,6 @@
 			})
 
 		})
-
 
 
 	})()
