@@ -82,18 +82,40 @@ async function sortCodeFromDetails() {
 	await _getResultPromise(updateSql)
 }
 
-async function getUniqCodeorDetails(month) {
+async function getUniqCodeorDetails(month, type = 'cost') {
 	const monthCondition = month ? ` WHERE strftime("%Y-%m","transaction_date") = "${month}"` : ""
-	const sel = `SELECT distinct code FROM bill ${monthCondition}`
+
+	let finalCondition
+	switch (type) {
+		case 'cost':
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) < 0';
+			break
+		case 'income':
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) > 0';
+			break
+	}
+	const sel = `SELECT distinct code FROM bill ${finalCondition}`
 	return await _getResultPromise(sel)
+}
+
+function insertCategory(category) {
+	_getResultPromise('INSERT INTO category VALUES (?)', [category])
+}
+
+function removeCategory(category) {
+	_getResultPromise(`DELETE FROM category WHERE name = "${category}"`)
 }
 
 async function createBillTable(data) {
 	const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
-	const createTable = `CREATE TABLE IF NOT EXISTS bill (${sheetCols},category)`
-	const dropTable = 'DROP TABLE bill'
-	await _getResultPromise(dropTable)
-	await _getResultPromise(createTable)
+	const dropBillTable = 'DROP TABLE IF EXISTS bill'
+	const dropCategoryTable = 'DROP TABLE IF EXISTS category'
+	const createBillTable = `CREATE TABLE IF NOT EXISTS bill (${sheetCols},category)`
+	const createCateTable = `CREATE TABLE IF NOT EXISTS category (name)`
+	await _getResultPromise(dropBillTable)
+	await _getResultPromise(dropCategoryTable)
+	await _getResultPromise(createBillTable)
+	await _getResultPromise(createCateTable)
 	console.log('async after')
 
 	await Promise.all(data.map(async (item) => {

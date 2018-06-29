@@ -53,14 +53,18 @@
 					<h5 class="card-header" id="pieCardTitle">Portion Summary</h5>
 					<div class="card-body">
 						<!--show it when pie chart showing, onclick-->
-						<input type="text" id="category" placeholder="cost category">
+						<!-- dynamic table -->
+						<input type="text" id="category" placeholder="customize category">
 						<button id="addCategoryBtn">Add</button>
 						<ul id="costCategory"></ul>
+						<table id="dynamicTable" class="table">
+						</table>
 						<div id="pieDetail" style="width: 800px;height:500px;"></div>
 					</div>
 				</div>
 			</section>
 			<br/>
+
 			<br/>
 			<section>
 				<div class="card" id="costDetailsCard" style="display: none">
@@ -82,6 +86,8 @@
 
 	(function () {
 
+		let uniqCodes
+
 		const moneySlider = document.querySelector('#myRange')
 		const scaleMoney = document.querySelector('#scaleMoney')
 		const detailTable = document.querySelector('#detailTable')
@@ -96,14 +102,39 @@
 		const pieCardTitle = document.querySelector('#pieCardTitle')
 		const tableCardTitle = document.querySelector('#tableCardTitle')
 
+		const dynamicCategoryTable = document.querySelector('#dynamicTable')
+
 		//category list
 		addCategoryBtn.addEventListener('click', () => {
-			// TODO add to table column
+			// TODO insert row in category table
 			const category = document.querySelector('#category').value
+			insertCategory(category)
+			Array.from(document.querySelectorAll('#dynamicTable tr')).forEach((tr, index) => {
+				if (index === 0) {
+					const th = document.createElement('th')
+					th.className = category
+					th.innerText = category
+					tr.appendChild(th)
+				} else {
+					const td = document.createElement('td')
+					td.className = category
+					const input = document.createElement('input')
+					input.dataset.category = category
+					input.dataset.code = tr.firstChild.innerText
+					input.type = 'checkbox'
+					td.appendChild(input)
+					tr.appendChild(td)
+				}
+
+			})
+
+			// TODO remove row in category table
 			document.querySelector('#costCategory').innerHTML += `
 				<li onclick="(()=>{
-					// TODO remove table column
+					removeCategory(this.innerText)
 					document.querySelector('#costCategory').removeChild(this)
+					Array.from(document.getElementsByClassName(this.innerText))
+						.forEach(node=>node.parentElement.removeChild(node))
 				})()">
 					<span class="badge badge-pill badge-info">${category}</span>
 				</li>
@@ -250,7 +281,6 @@
 					createBillTable(jsonData)
 						.then(() => sortCodeFromDetails())
 						.then(() => renderTotalChart())
-						.then(() => console.log(getUniqCodeorDetails('2018-05'))) //TODO test distinct code here
 						.catch(e => console.error(e))
 				}
 			}
@@ -285,6 +315,19 @@
 					row.insertCell(4).innerText = record['Code']
 				})
 
+			})
+
+			//dynamic table insert code column
+			//TODO based on exsiting data, render the table
+			dynamicCategoryTable.innerText = ''
+			const headerR = dynamicCategoryTable.insertRow()
+			headerR.insertCell(0).innerText = 'Code'
+			getUniqCodeorDetails(params.name, params.seriesName).then(resultSet => {
+				uniqCodes = resultSet.map(r => r.Code)
+				uniqCodes.forEach(code => {
+					const row = dynamicCategoryTable.insertRow()
+					row.insertCell(0).innerText = code || 'Unknown'
+				})
 			})
 
 			getCostAmountByCodeOrDetails(params.name, params.seriesName).then(resultSet => {
