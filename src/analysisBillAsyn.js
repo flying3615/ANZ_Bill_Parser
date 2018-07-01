@@ -106,6 +106,10 @@ function removeCategory(category) {
 	_getResultPromise(`DELETE FROM category WHERE name = "${category}"`)
 }
 
+function updateBillCategory(category, code) {
+	_getResultPromise(`UPDATE bill SET category = ${category}  WHERE details = "${code}" or code = "${code}"`)
+}
+
 async function createBillTable(data) {
 	const sheetCols = Object.keys(data[0]).map(k => String(k).replace(/[\s,\/]/g, '_')).join(',')
 	const dropBillTable = 'DROP TABLE IF EXISTS bill'

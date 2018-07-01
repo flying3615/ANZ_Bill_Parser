@@ -3,11 +3,11 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Web SQL</title>
-	<script src="xlsx.full.min.js"></script>
-	<script src="ssf.js"></script>
+	<script src="lib/xlsx.full.min.js"></script>
+	<script src="lib/ssf.js"></script>
 	<script src="util.js"></script>
 	<script src="analysisBillAsyn.js"></script>
-	<script src="echarts.min.js"></script>
+	<script src="lib/echarts.min.js"></script>
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
 					integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
 					crossorigin="anonymous"></script>
@@ -104,9 +104,8 @@
 
 		const dynamicCategoryTable = document.querySelector('#dynamicTable')
 
-		//category list
+		//category adding handler
 		addCategoryBtn.addEventListener('click', () => {
-			// TODO insert row in category table
 			const category = document.querySelector('#category').value
 			insertCategory(category)
 			Array.from(document.querySelectorAll('#dynamicTable tr')).forEach((tr, index) => {
@@ -119,16 +118,34 @@
 					const td = document.createElement('td')
 					td.className = category
 					const input = document.createElement('input')
+					//handle onclick action...
 					input.dataset.category = category
 					input.dataset.code = tr.firstChild.innerText
 					input.type = 'checkbox'
 					td.appendChild(input)
 					tr.appendChild(td)
 				}
-
 			})
 
-			// TODO remove row in category table
+			// category handler
+			//TODO test update bill table
+			Array.from(dynamicCategoryTable.querySelectorAll('input')).forEach(inputEle => {
+				inputEle.addEventListener('click', (e) => {
+					if (e.target.checked) {
+						console.log('----checked------')
+						console.log(e.target.dataset.category)
+						console.log(e.target.dataset.code)
+						updateBillCategory(e.target.dataset.category, e.target.dataset.code)
+					} else{
+						console.log('----unchecked------')
+						console.log(e.target.dataset.category)
+						console.log(e.target.dataset.code)
+						updateBillCategory(null, e.target.dataset.code)
+					}
+				})
+			})
+
+
 			document.querySelector('#costCategory').innerHTML += `
 				<li onclick="(()=>{
 					removeCategory(this.innerText)
