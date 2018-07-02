@@ -81,7 +81,6 @@
 </div>
 <script>
 
-
 	const db = openDatabase('mydb', '1.0', 'my first database', 2 * 1024 * 1024);
 
 	(function () {
@@ -108,54 +107,11 @@
 		addCategoryBtn.addEventListener('click', () => {
 			const category = document.querySelector('#category').value
 			insertCategory(category)
-			Array.from(document.querySelectorAll('#dynamicTable tr')).forEach((tr, index) => {
-				if (index === 0) {
-					const th = document.createElement('th')
-					th.className = category
-					th.innerText = category
-					tr.appendChild(th)
-				} else {
-					const td = document.createElement('td')
-					td.className = category
-					const input = document.createElement('input')
-					//handle onclick action...
-					input.dataset.category = category
-					input.dataset.code = tr.firstChild.innerText
-					input.type = 'checkbox'
-					td.appendChild(input)
-					tr.appendChild(td)
-				}
-			})
 
-			// category handler
-			//TODO test update bill table
-			Array.from(dynamicCategoryTable.querySelectorAll('input')).forEach(inputEle => {
-				inputEle.addEventListener('click', (e) => {
-					if (e.target.checked) {
-						console.log('----checked------')
-						console.log(e.target.dataset.category)
-						console.log(e.target.dataset.code)
-						updateBillCategory(e.target.dataset.category, e.target.dataset.code)
-					} else{
-						console.log('----unchecked------')
-						console.log(e.target.dataset.category)
-						console.log(e.target.dataset.code)
-						updateBillCategory(null, e.target.dataset.code)
-					}
-				})
-			})
+			addCategoryColumn(Array.from(document.querySelectorAll('#dynamicTable tr')), category)
 
+			createCategoryLi(document.querySelector('#costCategory'), category)
 
-			document.querySelector('#costCategory').innerHTML += `
-				<li onclick="(()=>{
-					removeCategory(this.innerText)
-					document.querySelector('#costCategory').removeChild(this)
-					Array.from(document.getElementsByClassName(this.innerText))
-						.forEach(node=>node.parentElement.removeChild(node))
-				})()">
-					<span class="badge badge-pill badge-info">${category}</span>
-				</li>
-			`
 		})
 
 
@@ -306,6 +262,7 @@
 		fileInputBtn.addEventListener('change', handleFileSelect)
 		resetBtn.addEventListener('click', resetTotal)
 
+		//handle month click
 		totalSummChart.on('click', params => {
 
 			//show pie chart
@@ -335,7 +292,6 @@
 			})
 
 			//dynamic table insert code column
-			//TODO based on exsiting data, render the table
 			dynamicCategoryTable.innerText = ''
 			const headerR = dynamicCategoryTable.insertRow()
 			headerR.insertCell(0).innerText = 'Code'
@@ -344,6 +300,15 @@
 				uniqCodes.forEach(code => {
 					const row = dynamicCategoryTable.insertRow()
 					row.insertCell(0).innerText = code || 'Unknown'
+				})
+			})
+
+			getCategories().then(cats => {
+				cats.forEach(c => {
+					//init dynamic table
+					addCategoryColumn(Array.from(document.querySelectorAll('#dynamicTable tr')), c.name)
+					//init category ul
+					createCategoryLi(document.querySelector('#costCategory'), c.name)
 				})
 			})
 
@@ -410,7 +375,6 @@
 			})
 
 		})
-
 
 	})()
 </script>
