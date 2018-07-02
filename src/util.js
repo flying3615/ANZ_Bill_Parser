@@ -93,6 +93,19 @@ function _addCategoryInputListener(inputEle){
 			console.log('----checked------')
 			console.log(e.target.dataset.category)
 			console.log(e.target.dataset.code)
+
+			const duplCheked = Array.from(inputEle.closest('tr').childNodes)
+					.filter(ele => {
+						const otherInput = ele.querySelector('input')||{}
+						return otherInput !== inputEle && otherInput.checked
+					}).length > 0
+
+			if(duplCheked) {
+				alert('only can associate one category to one code')
+				//do uncheck
+				e.target.checked = false
+				return
+			}
 			updateBillCategory(e.target.dataset.category, e.target.dataset.code)
 		} else {
 			console.log('----unchecked------')
