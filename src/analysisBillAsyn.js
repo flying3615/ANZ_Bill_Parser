@@ -94,11 +94,11 @@ async function getUniqCodeorDetails(month, type = 'cost') {
 			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) > 0';
 			break
 	}
-	const sel = `SELECT distinct code FROM bill ${finalCondition}`
+	const sel = `SELECT distinct code FROM bill ${finalCondition} order by code`
 	return await _getResultPromise(sel)
 }
 
-async function getCategories(){
+async function getCategories() {
 	const querySQL = `SELECT name from category`
 	return await _getResultPromise(querySQL)
 }
@@ -108,17 +108,49 @@ function insertCategory(category) {
 }
 
 function removeCategory(category) {
+
 	_getResultPromise(`UPDATE bill SET category = "null" WHERE category = "${category}"`)
 	_getResultPromise(`DELETE FROM category WHERE name = "${category}"`)
+		.then(()=>{
+			//eventbust fire event
+			eventBus.post('categoryUpdate')
+		})
 }
 
-// TODO by month
 function updateBillCategory(category, code) {
-	_getResultPromise(`UPDATE bill SET category = "${category}" WHERE details = "${code}" or code = "${code}"`)
+
+	// read currentDate from global
+	_getResultPromise(`UPDATE bill SET category = "${category}" WHERE strftime("%Y-%m","transaction_date") = "${currentDate}" and (details = "${code}" or code = "${code}")`)
+		.then(()=>{
+			//eventbust fire event
+			eventBus.post('categoryUpdate')
+		})
+}
+
+async function getDetailByCustomCategory(month, type = 'total') {
+
+	const monthCondition = month ? ` WHERE strftime("%Y-%m","transaction_date") = "${month}"` : ""
+
+	let finalCondition
+	switch (type) {
+		case 'cost':
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) < 0';
+			break
+		case 'income':
+			finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) > 0';
+			break
+		default:
+			finalCondition = monthCondition;
+			break
+	}
+
+	const sel = `SELECT sum(amount) AS cost, category FROM bill ${finalCondition} GROUP BY category`
+
+	return await _getResultPromise(sel)
 }
 
 // TODO by month
-async function getCodeByCategory(category,code) {
+async function getCodeByCategory(category, code) {
 	const querySQL = `SELECT count(1) as num FROM bill WHERE (details = "${code}" or code = "${code}") and category = "${category}"`
 	return await _getResultPromise(querySQL)
 }

@@ -6,6 +6,7 @@
 	<script src="lib/xlsx.full.min.js"></script>
 	<script src="lib/ssf.js"></script>
 	<script src="util.js"></script>
+	<script src="EventBus.js"></script>
 	<script src="analysisBillAsyn.js"></script>
 	<script src="lib/echarts.min.js"></script>
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
@@ -65,6 +66,7 @@
 						<ul id="costCategory"></ul>
 						<table id="dynamicTable" class="table">
 						</table>
+						<div id="custPieDetail" style="width: 800px;height:500px; display: none"></div>
 						<div id="pieDetail" style="width: 800px;height:500px;"></div>
 					</div>
 				</div>
@@ -87,11 +89,13 @@
 </div>
 <script>
 
+	//globe val & var
 	const db = openDatabase('mydb', '1.0', 'my first database', 2 * 1024 * 1024);
+	const eventBus = new EventBus()
+	let currentDate, moneyType, uniqCodes
+
 
 	(function () {
-
-		let uniqCodes
 
 		const moneySlider = document.querySelector('#myRange')
 		const scaleMoney = document.querySelector('#scaleMoney')
@@ -109,6 +113,8 @@
 
 		const dynamicCategoryTable = document.querySelector('#dynamicTable')
 
+		const categoryUL = document.querySelector('#costCategory')
+
 		//category adding handler
 		addCategoryBtn.addEventListener('click', () => {
 			const category = document.querySelector('#category').value
@@ -116,13 +122,75 @@
 
 			addCategoryColumn(Array.from(document.querySelectorAll('#dynamicTable tr')), category)
 
-			createCategoryLi(document.querySelector('#costCategory'), category)
+			createCategoryLi(categoryUL, category)
 
 		})
 
 
 		const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
 		const detailsChart = echarts.init(document.querySelector('#pieDetail'))
+		const custDetailChart = echarts.init(document.querySelector('#custPieDetail'))
+
+		//Eventbust get category update
+		//render another customize pie chart
+		eventBus.subscribe('categoryUpdate', () => {
+			//show custDetialChart
+			document.querySelector('#custPieDetail').style.display = 'block'
+			getDetailByCustomCategory(currentDate, moneyType).then((resultSet) => {
+
+
+				const seriesData = resultSet.map(r => {
+					return {
+						value: Math.abs(r.cost).toFixed(2),
+						name: r.category == 'null' ? 'Others' : r.category
+					}
+				})
+
+				const legendData = resultSet.map(r => r.category == 'null' ? 'Others' : r.category)
+
+				const option = {
+					tooltip: {
+						trigger: 'item',
+						formatter: "{a} <br/>{b}: {c} ({d}%)"
+					},
+					legend: {
+						orient: 'vertical',
+						x: 'left',
+						data: legendData
+					},
+					series: [
+						{
+							name: 'Source',
+							type: 'pie',
+							radius: ['50%', '70%'],
+							avoidLabelOverlap: false,
+							label: {
+								normal: {
+									show: false,
+									position: 'center'
+								},
+								emphasis: {
+									show: true,
+									textStyle: {
+										fontSize: '30',
+										fontWeight: 'bold'
+									}
+								}
+							},
+							labelLine: {
+								normal: {
+									show: false
+								}
+							},
+							data: seriesData
+						}
+					]
+				};
+				custDetailChart.setOption(option)
+			})
+
+
+		})
 
 		moneySlider.addEventListener('input', () => {
 			scaleMoney.innerHTML = moneySlider.value
@@ -271,12 +339,19 @@
 		//handle month click
 		totalSummChart.on('click', params => {
 
+			//globe variable
+			currentDate = params.name
+			moneyType = params.seriesName
+
 			//show pie chart
 			portionCard.style.display = 'block'
 			//show cost details table
 			costDetailsCard.style.display = 'block'
 
+			//clean work
 			detailTable.innerHTML = ''
+			categoryUL.innerHTML = ''
+
 			const headerRow = detailTable.insertRow()
 			headerRow.insertCell(0).innerText = 'Date'
 			headerRow.insertCell(1).innerText = 'Amount'
@@ -314,7 +389,7 @@
 					//init dynamic table
 					addCategoryColumn(Array.from(document.querySelectorAll('#dynamicTable tr')), c.name)
 					//init category ul
-					createCategoryLi(document.querySelector('#costCategory'), c.name)
+					createCategoryLi(categoryUL, c.name)
 				})
 			})
 
@@ -381,6 +456,7 @@
 			})
 
 		})
+
 
 	})()
 </script>

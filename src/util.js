@@ -90,17 +90,17 @@ function createCategoryLi(ul, category) {
 function _addCategoryInputListener(inputEle){
 	inputEle.addEventListener('click', (e) => {
 		if (e.target.checked) {
-			console.log('----checked------')
-			console.log(e.target.dataset.category)
-			console.log(e.target.dataset.code)
+			// console.log('----checked category------')
+			// console.log(e.target.dataset.category)
+			// console.log(e.target.dataset.code)
 
-			const duplCheked = Array.from(inputEle.closest('tr').childNodes)
+			const duplChecked = Array.from(inputEle.closest('tr').childNodes)
 					.filter(ele => {
 						const otherInput = ele.querySelector('input')||{}
 						return otherInput !== inputEle && otherInput.checked
 					}).length > 0
 
-			if(duplCheked) {
+			if(duplChecked) {
 				alert('only can associate one category to one code')
 				//do uncheck
 				e.target.checked = false
@@ -108,10 +108,11 @@ function _addCategoryInputListener(inputEle){
 			}
 			updateBillCategory(e.target.dataset.category, e.target.dataset.code)
 		} else {
-			console.log('----unchecked------')
-			console.log(e.target.dataset.category)
-			console.log(e.target.dataset.code)
+			// console.log('----unchecked category------')
+			// console.log(e.target.dataset.category)
+			// console.log(e.target.dataset.code)
 			updateBillCategory(null, e.target.dataset.code)
 		}
+
 	})
 }
