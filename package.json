@@ -10,7 +10,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "echarts": "^4.1.0",
     "lodash": "^4.17.10",
+    "ssf": "^0.10.2",
+    "webpack": "^4.16.0",
+    "xlsx": "^0.13.2",
     "xlsx-to-json-lc": "^0.5.0"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.0.8"
   }
 }
