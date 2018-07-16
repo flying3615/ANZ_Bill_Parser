@@ -179,7 +179,7 @@ class Analyser {
 		this.util._getResultPromise(createBillTable)
 		this.util._getResultPromise(createCateTable)
 
-		Promise.all(data.map(async (item) => {
+		return Promise.all(data.map(async (item) => {
 			const values = Object.values(item).map((v, index) => {
 				if (v) {
 					//first two columns are 'transaction date' & 'processed date'
@@ -191,9 +191,8 @@ class Analyser {
 
 			const insertSQL = `INSERT INTO bill (${sheetCols}, category) VALUES (${values}, "null")`
 
-			return await this.util._getResultPromise(insertSQL)
+			return this.util._getResultPromise(insertSQL)
 		}))
-
 	}
 
 	addCategoryColumn(tableRows, category) {

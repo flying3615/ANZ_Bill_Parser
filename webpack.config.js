@@ -1,12 +1,6 @@
 /**
  * Created by liuyufei on 13/07/18.
  */
-const path = require('path');
-
-module.exports = {
-	entry: './src/index.js',
-	output: {
-		path: path.resolve(__dirname, 'dist'),
-		filename: 'bundle.js'
-	}
-};
+module.exports =(env) => {
+	return require(`./webpack.${env}.js`)
+}

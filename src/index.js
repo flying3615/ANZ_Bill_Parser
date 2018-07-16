@@ -8,28 +8,29 @@ const echarts = require('echarts')
 
 window.onload = function () {
 
+	//get HTML elements
 	const moneySlider = document.querySelector('#myRange')
 	const scaleMoney = document.querySelector('#scaleMoney')
 	const detailTable = document.querySelector('#detailTable')
 	const fileInputBtn = document.querySelector('#files')
 	const resetBtn = document.querySelector('#resetBtn')
-
 	const portionCard = document.querySelector('#portionCard')
 	const costDetailsCard = document.querySelector('#costDetailsCard')
-
 	const addCategoryBtn = document.querySelector('#addCategoryBtn')
-
 	const pieCardTitle = document.querySelector('#pieCardTitle')
 	const tableCardTitle = document.querySelector('#tableCardTitle')
-
 	const dynamicCategoryTable = document.querySelector('#dynamicTable')
+	const categoryUL = document.querySelector('#costCategory');
 
-	const categoryUL = document.querySelector('#costCategory')
-	const db = openDatabase('mydb', '1.0', 'my first database', 2 * 1024 * 1024);
+  // init 3 charts
+	const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
+	const detailsChart = echarts.init(document.querySelector('#pieDetail'))
+	const custDetailChart = echarts.init(document.querySelector('#custPieDetail'))
 
+	// init DB & handlers
+	const db = openDatabase('bill_db', '1.0', 'bill web db', 3 * 1024 * 1024);
 	const util = new Util(db)
 	const analysis = new Analyser(util)
-
 
 	//category adding handler
 	addCategoryBtn.addEventListener('click', () => {
@@ -42,10 +43,6 @@ window.onload = function () {
 
 	})
 
-
-	const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
-	const detailsChart = echarts.init(document.querySelector('#pieDetail'))
-	const custDetailChart = echarts.init(document.querySelector('#custPieDetail'))
 
 	//Eventbust get category update
 	//render another customize pie chart
