@@ -310,6 +310,9 @@ window.onload = function () {
 			})
 		})
 
+		//when date changed, also update custom pie chart
+		eventBus.post('categoryUpdate')
+
 		analysis.getCostAmountByCodeOrDetails(params.name, params.seriesName).then(resultSet => {
 			if (!['cost', 'income'].includes(params.seriesName)) {
 				// hide pie and table

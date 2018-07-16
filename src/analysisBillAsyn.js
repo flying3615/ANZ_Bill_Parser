@@ -94,7 +94,7 @@ class Analyser {
 	getUniqCodeorDetails(month, type = 'cost') {
 		const monthCondition = month ? ` WHERE strftime("%Y-%m","transaction_date") = "${month}"` : ""
 
-		let finalCondition
+		let finalCondition = ''
 		switch (type) {
 			case 'cost':
 				finalCondition = monthCondition + ' AND cast(amount AS DECIMAL) < 0';
@@ -129,10 +129,15 @@ class Analyser {
 	}
 
 
-	updateBillCategory(category, code) {
+	updateBillCategory(category, code, forAllCode) {
+
+		let limitDate = ''
+		if(forAllCode){
+			limitDate = ` strftime("%Y-%m","transaction_date") = "${currentDate}" and `
+		}
 
 		// read currentDate from global
-		this.util._getResultPromise(`UPDATE bill SET category = "${category}" WHERE strftime("%Y-%m","transaction_date") = "${currentDate}" and (details = "${code}" or code = "${code}")`)
+		this.util._getResultPromise(`UPDATE bill SET category = "${category}" WHERE ${limitDate} (details like "%${code}%" or code like "%${code}%")`)
 			.then(() => {
 				//eventbust fire event
 				eventBus.post('categoryUpdate')
@@ -161,9 +166,8 @@ class Analyser {
 		return this.util._getResultPromise(sel)
 	}
 
-// TODO by month
 	getCodeByCategory(category, code) {
-		const querySQL = `SELECT count(1) as num FROM bill WHERE (details = "${code}" or code = "${code}") and category = "${category}"`
+		const querySQL = `SELECT count(1) as num FROM bill WHERE (details like "%${code}%" or code like "%${code}%") and category = "${category}" and strftime("%Y-%m","transaction_date") = "${currentDate}"`
 		return this.util._getResultPromise(querySQL)
 	}
 
@@ -215,6 +219,7 @@ class Analyser {
 
 				this._addCategoryInputListener(input)
 
+				//make the code checked with exsiting category
 				this.getCodeByCategory(category, code).then(data => {
 					if (data[0].num > 0) {
 						input.checked = true
@@ -230,7 +235,6 @@ class Analyser {
 	_addCategoryInputListener(inputEle) {
 		inputEle.addEventListener('click', (e) => {
 			if (e.target.checked) {
-
 				const duplChecked = Array.from(inputEle.closest('tr').childNodes)
 						.filter(ele => {
 							const otherInput = ele.querySelector('input') || {}
@@ -238,16 +242,19 @@ class Analyser {
 						}).length > 0
 
 				if (duplChecked) {
-					alert('only can associate one category to one code')
+					alert('Only can associate one category to one code')
 					//do uncheck
+					e.target.checked = false
+					return
+				}
+
+				if(e.target.dataset.code=='Unknown'){
+					alert('Unknown cannot associate any category')
 					e.target.checked = false
 					return
 				}
 				this.updateBillCategory(e.target.dataset.category, e.target.dataset.code)
 			} else {
-				// console.log('----unchecked category------')
-				// console.log(e.target.dataset.category)
-				// console.log(e.target.dataset.code)
 				this.updateBillCategory(null, e.target.dataset.code)
 			}
 
