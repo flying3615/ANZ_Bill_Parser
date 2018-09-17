@@ -5,6 +5,7 @@
 const Analyser = require('./analysisBillAsyn')
 const Util = require('./util')
 const echarts = require('echarts')
+const example_data = require('./example.json')
 
 window.onload = function () {
 
@@ -22,7 +23,7 @@ window.onload = function () {
 	const dynamicCategoryTable = document.querySelector('#dynamicTable')
 	const categoryUL = document.querySelector('#costCategory');
 
-  // init 3 charts
+	// init 3 charts
 	const totalSummChart = echarts.init(document.querySelector('#totalSumm'))
 	const detailsChart = echarts.init(document.querySelector('#pieDetail'))
 	const custDetailChart = echarts.init(document.querySelector('#custPieDetail'))
@@ -103,7 +104,7 @@ window.onload = function () {
 
 	})
 
-	eventBus.subscribe('rmCategory', (c)=>{
+	eventBus.subscribe('rmCategory', (c) => {
 		analysis.removeCategory(c)
 	})
 
@@ -234,22 +235,25 @@ window.onload = function () {
 
 
 	function handleFileSelect(evt) {
-		const files = evt.target.files
-		for (let i = 0; i < files.length; i++) {
-			const file = files[i]
-			const fileReader = new FileReader()
-			fileReader.readAsArrayBuffer(file)
-			fileReader.onload = e => {
-				const jsonData = util.readExcelData(fileReader)
-				analysis.createBillTable(jsonData)
-					.then(() => analysis.sortCodeFromDetails())
-					.then(() => renderTotalChart())
-					.catch(e => console.error(e))
-			}
+		const file = evt.target.files[0]
+		const fileReader = new FileReader()
+		fileReader.readAsArrayBuffer(file)
+		fileReader.onload = e => {
+			const jsonData = util.readExcelData(fileReader)
+			analysis.createBillTable(jsonData)
+				.then(() => analysis.sortCodeFromDetails())
+				.then(() => renderTotalChart())
+				.catch(e => console.error(e))
 		}
 	}
 
 	fileInputBtn.addEventListener('change', handleFileSelect)
+
+
+	analysis.createBillTable(example_data)
+		.then(() => analysis.sortCodeFromDetails())
+		.then(() => renderTotalChart())
+		.catch(e => console.error(e))
 
 	resetBtn.addEventListener('click', resetTotal)
 
